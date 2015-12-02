@@ -2,11 +2,13 @@ package com.zp.aidlcbc;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
 import android.app.Activity;
 import android.content.ComponentName;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.os.Binder;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
@@ -15,93 +17,60 @@ import android.os.RemoteException;
 import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.ListView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.zp.aidlcallbackclient.R;
 import com.zp.aidlcb.aidl.ICallbackService;
 import com.zp.aidlcb.aidl.IJoinCallback;
 
-public class MainActivity extends Activity {
+public class MainActivity extends Activity implements OnClickListener {
 	protected static final String TAG = "MainActivity";
-
+	// å¼€å¯æœåŠ¡çš„Action
 	private static final String CALLBACK_SERVICE_ACTION = "com.zp.aidlcb.aidl.ICallbackService.CALLBACKSERVICE";
 	// remote service
 	private ICallbackService callbackService = null;
+	private boolean isBinded = false;
+	private boolean isRegistered = false;
+	private IBinder mToken = new Binder();
+	private Random mRand = new Random();
 
-	private Button bt_callback;
-	private Button bt_showresult;
+	private Button bt_bind_togger;
+	private Button bt_register_togger;
+	private Button bt_join;
+	private Button bt_leave;
+	private Button bt_callremote;
+	private Button bt_getclients;
 	private TextView tv_output;
 
 	private Intent intent;
 	private ArrayList<String> mNames = new ArrayList<String>();
-	
-	/*
-	 * »Øµ÷¶ÔÏó;ÓÉÓÚCallbackServiceµÄÒ»¸öbug£¬¸Ã¶ÔÏóµÄonJoin()²¢Ã»ÓĞ±»Ö´ĞĞ
-	 */
-	private IJoinCallback.Stub mJoinCallback = new IJoinCallback.Stub() {
 
+	// Clientçš„ä¸€ä¸ªå›è°ƒå‡½æ•°
+	private IJoinCallback.Stub mJoinCallback = new IJoinCallback.Stub() {
 		@Override
 		public void onJoin(String name, boolean joinOrLeave)
 				throws RemoteException {
+			// Clientçš„å›è°ƒå‡½æ•°åœ¨Serviceç«¯å¯ä»¥åœ¨ä»»æ„çš„æ—¶åˆ»è°ƒç”¨
+			// æ­¤å¤„ä»…ä»…ä»¥åŠ å…¥æˆ–è€…ç¦»å¼€çš„æ—¶å€™è¿›è¡Œå›è°ƒ
 			if (joinOrLeave) {
-				Log.i(TAG, "onJoin():" + joinOrLeave);
+				handleMsg("Client "+name +"callback is called"+joinOrLeave);
 				mNames.add(name);
 			} else {
-				Log.i(TAG, "onJoin(): " + joinOrLeave);
+				handleMsg("Client "+name +"callback is called"+joinOrLeave);
 				mNames.remove(name);
 			}
 		}
 	};
-
-	@Override
-	protected void onCreate(Bundle savedInstanceState) {
-		super.onCreate(savedInstanceState);
-		setContentView(R.layout.activity_main);
-
-		bt_callback = (Button) findViewById(R.id.bt_callback);
-		bt_showresult = (Button) findViewById(R.id.bt_showresult);
-		tv_output = (TextView) findViewById(R.id.tv_output);
-		intent = new Intent();
-		intent.setAction(CALLBACK_SERVICE_ACTION);
-		// µã»÷½¨Á¢Ô¶³Ì·şÎñµÄÁ¬½Ó
-		bt_callback.setOnClickListener(new OnClickListener() {
-
-			@Override
-			public void onClick(View v) {
-				startService(intent);
-				bindService(intent, conn, BIND_AUTO_CREATE);
-				Log.i(TAG, "startService-->bindService");
-			}
-		});
-		// µã»÷µ÷ÓÃÔ¶³Ì·şÎñÖĞµÄÒ»Ğ©·½·¨£¬ĞèÒªÔÚbt_callbackµã»÷Ö®ºó
-		bt_showresult.setOnClickListener(new OnClickListener() {
-			@Override
-			public void onClick(View v) {
-				try {
-					// »ñÈ¡Á¬½ÓµÄ¿Í»§¶ËÊı
-					List<String> result = callbackService.getJoin();
-					int i = 0;
-					for (String str : result)
-						handleMsg(result.get(i++));
-					// µ÷ÓÃÔ¶³Ì·şÎñµÄ¼ÆËã¹¦ÄÜ
-					handleMsg("1 + 1 = " + callbackService.calculate(1, 1));
-					// »ñÈ¡»Øµ÷º¯ÊıÖĞÌí¼Óµ½mAdapterÖĞµÄString±äÁ¿ÊıÄ¿
-					handleMsg("callback echo :" + mNames.size());
-					
-				} catch (RemoteException e) {
-					e.printStackTrace();
-				}
-			}
-		});
-	}
 
 	private Handler handler = new Handler() {
 		@Override
 		public void handleMessage(Message msg) {
 			tv_output.append(msg.getData().getString("msg"));
 		}
-
 	};
 
 	public void handleMsg(String str) {
@@ -111,33 +80,160 @@ public class MainActivity extends Activity {
 		msg.setData(b);
 		handler.sendMessage(msg);
 	}
+	
+	@Override
+	protected void onCreate(Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.activity_main);
 
+		bt_bind_togger = (Button) findViewById(R.id.bt_bind_togger);
+		bt_register_togger = (Button) findViewById(R.id.bt_register_togger);
+		bt_join = (Button) findViewById(R.id.bt_join);
+		bt_leave = (Button) findViewById(R.id.bt_leave);
+		bt_callremote = (Button) findViewById(R.id.bt_callremote);
+		bt_getclients = (Button) findViewById(R.id.bt_getclients);
+		tv_output = (TextView) findViewById(R.id.tv_output);
+		
+		intent = new Intent();
+		intent.setAction(CALLBACK_SERVICE_ACTION);
+		
+		bt_bind_togger.setOnClickListener(this);
+		bt_register_togger.setOnClickListener(this);
+		bt_join.setOnClickListener(this);
+		bt_leave.setOnClickListener(this);
+		bt_callremote.setOnClickListener(this);
+		bt_getclients.setOnClickListener(this);
+	}
+
+	// è¿œç¨‹è¿æ¥ï¼Œè·å–è¿œç¨‹æœåŠ¡
 	private ServiceConnection conn = new ServiceConnection() {
-
 		@Override
 		public void onServiceDisconnected(ComponentName name) {
-			Log.i(TAG, "onServiceDisconnected()");
+			callbackService = null;
 		}
-
 		@Override
 		public void onServiceConnected(ComponentName name, IBinder service) {
-			Log.i(TAG, "onServiceConnected()");
 			callbackService = ICallbackService.Stub.asInterface(service);
-			try {
-				callbackService.join(service, "first client");
-				if(mJoinCallback == null)
-					Log.i(TAG, "mJoinCallback == null");
-				else{
-					callbackService.registerJoinCallback(mJoinCallback);
-					Log.i(TAG, "mJoinCallback £¡= null and registerJoinCallback success");
-				}
-				
-				Log.i(TAG, "callbackService.registerJoinCallback(mJoinCallback)");
-			} catch (RemoteException e) {
-				handleMsg("RemoteException onServiceConnected()");
-				e.printStackTrace();
-			}
 		}
 	};
+	
+	// Activityé”€æ¯ä¹‹åè§£é™¤æœåŠ¡çš„ç»‘å®š
+	@Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (isBinded) {
+            unbindService(conn);
+            callbackService = null;
+        }
+    }
+	
+	@Override
+	public void onClick(View v) {
+		switch (v.getId()) {
+		case R.id.bt_bind_togger:
+			// æœåŠ¡çš„ç»‘å®šå’Œè§£ç»‘
+			if (isBinded) {
+				unbindService(conn);
+				bt_bind_togger.setText("bind");
+				isBinded = false;
+				callbackService = null;
+				handleMsg("Service unbind");
+			}else{
+				startService(intent);
+				bindService(intent, conn, BIND_AUTO_CREATE);
+				bt_bind_togger.setText("unbind");
+				isBinded = true;
+				handleMsg("Service binded");
+			}
+			break;
+		case R.id.bt_register_togger:
+			// ä¸ºå½“å‰çš„Clientæ³¨å†Œä¸€ä¸ªå›è°ƒå‡½æ•°ï¼Œè¯¥å›è°ƒå‡½æ•°ä¼šåœ¨CallbackServiceçš„joinå’Œleaveå‡½æ•°ä¸­è¢«è°ƒç”¨
+			// å…¶ä»–è°ƒç”¨æ—¶æœºå¯ä»¥åœ¨CallbackServiceä¸­è‡ªè¡Œæ·»åŠ 
+			try {
+				if (isServiceReady()) {
+					if (isRegistered) {
+						callbackService.unregisterJoinCallback(mJoinCallback);
+						bt_register_togger.setText("register");
+						isRegistered = false;
+					} else {
+						callbackService.registerJoinCallback(mJoinCallback);
+						bt_register_togger.setText("unregister");
+						isRegistered = true;
+					}
+				}
+			} catch (RemoteException e) {
+				handleMsg("bt_register_togger RemoteException");
+				e.printStackTrace();
+			}
+			break;
+		case R.id.bt_join:
+			// ClientåŠ å…¥
+			try {
+				if (isServiceReady()) {
+					String tempClient = "Client " + mRand.nextInt(100);
+					callbackService.join(mToken, tempClient);
+					handleMsg("Client " + tempClient + " join");
+				}
+			} catch (RemoteException e) {
+				handleMsg("bt_join RemoteException");
+				e.printStackTrace();
+			}
+			break;
+		case R.id.bt_leave:
+			// Clientç¦»å¼€ï¼Œä½†æ˜¯Serviceå¹¶æ²¡æœ‰è®¾ç½®ä¸ºnullï¼Œåªæ˜¯å°†å…¶ä»clientåˆ—è¡¨ä¸­ç§»é™¤
+			// å®ç°è§CallbackServiceçš„leaveå‡½æ•°
+			try {
+				if (isServiceReady()) {
+					callbackService.leave(mToken);
+					handleMsg("Client leave");
+				}
+			} catch (RemoteException e) {
+				handleMsg("bt_leave RemoteException");
+				e.printStackTrace();
+			}
+			break;
+		case R.id.bt_callremote:
+			// è·å–è¿œç¨‹çš„ä¸€ä¸ªç®€å•çš„æ–¹æ³•è°ƒç”¨ï¼Œæ­¤å¤„æˆ‘ä¸€ä¸ªäºŒå…ƒè¿ç®—
+			try {
+				if (isServiceReady()) {
+					int result = callbackService.calculate(1, 2);
+					handleMsg("1 + 2 = " + result);
+				}
+			} catch (RemoteException e) {
+				handleMsg("bt_callremote RemoteException");
+				e.printStackTrace();
+			}
+			break;
+		case R.id.bt_getclients:
+			// è·å–æ‰€æœ‰è¿æ¥çš„Clientåå­—
+			try {
+				if (isServiceReady()) {
+					List<String> names = callbackService.getJoin();
+					handleMsg("connected clients :");
+					for(int i=0;i<names.size();i++)
+						handleMsg("client "+(i+1)+ names.get(i));
+				}
+			} catch (RemoteException e) {
+				handleMsg("bt_getclients RemoteException");
+				e.printStackTrace();
+			}
+			break;
+		}
+	
+	}
+	
+	/**
+	 * åˆ¤æ–­å½“å‰è¿œç¨‹æœåŠ¡æ˜¯å¦å¯ç”¨
+	 * 
+	 * @return trueå¯ç”¨ï¼Œå¦åˆ™ä¸å¯ç”¨
+	 */
+	private boolean isServiceReady() {
+        if (callbackService != null) {
+            return true;
+        } else {
+            handleMsg("Service is not available yet! please bind it first");
+            return false;
+        }
+    }
 
 }
