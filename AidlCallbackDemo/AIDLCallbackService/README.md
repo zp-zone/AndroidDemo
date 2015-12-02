@@ -1,0 +1,5 @@
+# AidlCallbackService  
+
+AIDL实现的回调的服务端CallbackService  
+
+Client向Service注册回调函数，Service在合适的时机调用这些回调函数。同时Service端支持多个Client的连接和管理。对Client的意外断开也进行了处理，防止资源泄露
