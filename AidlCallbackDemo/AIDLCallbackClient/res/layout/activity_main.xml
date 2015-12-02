@@ -1,29 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    android:layout_width="fill_parent"
-    android:layout_height="fill_parent"
     android:orientation="vertical"
-    tools:context=".MainActivity" >
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:gravity="clip_horizontal">
 
-    <Button 
-        android:id="@+id/bt_callback"
-        android:layout_width="fill_parent"
+    <Button
+        android:id="@+id/bt_bind_togger"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="callback"
-        />
-    
-    <Button 
-        android:id="@+id/bt_showresult"
-        android:layout_width="fill_parent"
+        android:text="bind service"/>
+
+    <Button
+        android:id="@+id/bt_register_togger"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="show result"
-        />
+        android:text="register callback"/>
     
+    <Button
+        android:id="@+id/bt_join"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="join"/>
+    
+    <Button
+        android:id="@+id/bt_leave"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="leave"/>
+    
+    <Button
+        android:id="@+id/bt_callremote"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="call remote func"/>
+    
+     <Button
+        android:id="@+id/bt_getclients"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="get connected clients"/>
+
+
     <TextView
         android:id="@+id/tv_output"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/hello_world" />
-    
-
+        android:layout_width="match_parent"
+        android:layout_height="fill_parent" />
 </LinearLayout>
