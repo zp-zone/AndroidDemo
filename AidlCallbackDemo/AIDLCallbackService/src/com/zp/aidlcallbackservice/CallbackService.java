@@ -14,55 +14,56 @@ import com.zp.aidlcb.aidl.ICallbackService;
 import com.zp.aidlcb.aidl.IJoinCallback;
 
 /**
- * Ô¶³Ì·şÎñÀà£¬Ìá¹©»Øµ÷×¢²á·½·¨£¬ÒÔ¼°Ô¶³ÌÁ¬½Ó·ÇÕı³£¶Ï¿ªµÄ´¦Àí 
+ * è¿œç¨‹æœåŠ¡ç±»ï¼Œæä¾›å›è°ƒæ³¨å†Œæ–¹æ³•ï¼Œä»¥åŠè¿œç¨‹è¿æ¥éæ­£å¸¸æ–­å¼€çš„å¤„ç† 
  *
  */
 public class CallbackService extends Service {
 	private static final String TAG = "CallbackService";
 
-	// »Øµ÷º¯ÊıÊı×é£¬Ã¿¸öÁ¬½ÓµÄClient×¢²áÒ»¸öIJoinCallbackÀàĞÍµÄ»Øµ÷½Ó¿Ú
-	private RemoteCallbackList<IJoinCallback> mCallbacks = new RemoteCallbackList<IJoinCallback>();
-	// Á¬½ÓµÄClientÊı×é
+	// å›è°ƒå‡½æ•°æ•°ç»„ï¼Œæ¯ä¸ªè¿æ¥çš„Clientæ³¨å†Œä¸€ä¸ªIJoinCallbackç±»å‹çš„å›è°ƒæ¥å£
+	private RemoteCallbackList<IJoinCallback> iCallbacks = new RemoteCallbackList<IJoinCallback>();
+	// è¿æ¥çš„Clientæ•°ç»„
 	private List<Client> mClients = new ArrayList<Client>();
 
 	private final ICallbackService.Stub mBinder = new ICallbackService.Stub() {
 
+		// Clientå–æ¶ˆæ³¨å†Œçš„æ¥å£
 		@Override
 		public void unregisterJoinCallback(IJoinCallback callback)
 				throws RemoteException {
-			mCallbacks.unregister(callback);
+			iCallbacks.unregister(callback);
 			Log.i(TAG, "unregisterJoinCallback()");
 		}
 
+		// Clientæ³¨å†Œå›è°ƒå‡½æ•°çš„æ¥å£
 		@Override
 		public void registerJoinCallback(IJoinCallback callback)
 				throws RemoteException {
-			mCallbacks.register(callback);
+			iCallbacks.register(callback);
 			Log.i(TAG, "registerJoinCallback()");
 		}
 
-		// »ñÈ¡ËùÓĞÒÑ¾­Á¬½ÓµÄ¿Í»§¶ËµÄÃû×Ö
+		// è·å–æ‰€æœ‰å·²ç»è¿æ¥çš„å®¢æˆ·ç«¯çš„åå­—
 		@Override
 		public List<String> getJoin() throws RemoteException {
 			ArrayList<String> names = new ArrayList<String>();
 			for (Client client : mClients) {
 				names.add(client.mName);
+				Log.i(TAG, client.mName + " : getJoin()");
 			}
-			Log.i(TAG, "getJoin()");
 			return names;
 		}
 
-		// Ò»¸ö¼òµ¥µÄÔ¶³Ì¼ÆËã¹¦ÄÜ½Ó¿Úº¯Êı
+		// ä¸€ä¸ªç®€å•çš„è¿œç¨‹è®¡ç®—åŠŸèƒ½æ¥å£å‡½æ•°
 		@Override
 		public int calculate(int a, int b) throws RemoteException {
-			Log.i(TAG, "calculate()");
+			Log.i(TAG, "calculate() called");
 			return a + b;
 		}
 
-		// Á¬½Ó½¨Á¢
+		// ClientåŠ å…¥ï¼Œå°†å…¶åŠ å…¥åˆ°mClientså¹¶é€šè¿‡notifyParticipate()æ‰§è¡Œæ³¨å†Œçš„å›è°ƒå‡½æ•°
 		@Override
 		public void join(IBinder token, String name) throws RemoteException {
-			Log.i(TAG, "join()");
 			int idx = findClient(token);
 			if (idx >= 0) {
 				Log.i(TAG, "already joined");
@@ -70,18 +71,17 @@ public class CallbackService extends Service {
 			}
 
 			Client client = new Client(token, name);
-			// // ×¢²á¿Í»§¶Ë¶Ï¿ªÁ¬½ÓµÄµÄÍ¨Öª£»ÔÚRemoteCallbackList<E extends IInterface>ÀàµÄÔ´ÂëÖĞÓĞµÈ¼ÛÊµÏÖ
-			// // ¿ÉÒÔ²Î¿¼ÏÂÔ´ÂëµÄÊµÏÖ
-			// token.linkToDeath(client, 0);
+			// // æ³¨å†Œå®¢æˆ·ç«¯æ–­å¼€è¿æ¥çš„çš„é€šçŸ¥ï¼›åœ¨RemoteCallbackList<E extends IInterface>ç±»çš„æºç ä¸­æœ‰ç­‰ä»·å®ç°
+			// // å¯ä»¥å‚è€ƒä¸‹æºç çš„å®ç°
+			token.linkToDeath(client, 0);
 			mClients.add(client);
-			// ·¢³öÍ¨ÖªÊÂ¼ş£»Ğ§¹ûÍ¬ token.linkToDeath
+			// å‘å‡ºé€šçŸ¥äº‹ä»¶ï¼›æ•ˆæœåŒ token.linkToDeath
 			notifyParticipate(client.mName, true);
 		}
-		
-		// Á¬½ÓÕı³£½áÊø£¬ClientÀë¿ª
+
+		// Clientæ­£å¸¸ç¦»å¼€ï¼Œä»mClientsåˆ—è¡¨ä¸­å°†å…¶ç§»é™¤ï¼Œç„¶åå›è°ƒå…¶æ³¨å†Œçš„å›è°ƒå‡½æ•°
 		@Override
 		public void leave(IBinder token) throws RemoteException {
-			Log.i(TAG, "leave()");
 			int idx = findClient(token);
 			if (idx < 0) {
 				Log.i(TAG, "already left");
@@ -90,9 +90,9 @@ public class CallbackService extends Service {
 
 			Client client = mClients.get(idx);
 			mClients.remove(client);
-			// // È¡Ïû×¢²á
-			// client.mToken.unlinkToDeath(client, 0);
-			// ·¢³ö¶Ï¿ªÁ¬½ÓµÄÍ¨ÖªÍ¨ÖªÊÂ¼ş
+			// // å–æ¶ˆæ³¨å†Œ
+			client.mToken.unlinkToDeath(client, 0);
+			// å‘å‡ºæ–­å¼€è¿æ¥çš„é€šçŸ¥é€šçŸ¥äº‹ä»¶
 			notifyParticipate(client.mName, false);
 		}
 	};
@@ -106,19 +106,17 @@ public class CallbackService extends Service {
 	public void onDestroy() {
 		super.onDestroy();
 		Log.i(TAG, "onDestroy()");
-		// ServiceÏú»ÙµÄÊ±ºòÇå³ıµômCallbacksÖĞµÄ»Øµ÷¶ÔÏó
-		mCallbacks.kill();
+		// Serviceé”€æ¯çš„æ—¶å€™æ¸…é™¤æ‰mCallbacksä¸­çš„å›è°ƒå¯¹è±¡
+		iCallbacks.kill();
 	}
 
 	/**
-	 *  ²éÕÒÁ¬½ÓµÄ¿Í»§¶Ë£¬µ¥»úÖ»ÄÜ²âÊÔÒ»¸ö¿Í»§¶Ë£¬µ¥¸ö¿Í»§¶ËµÄÁ¬½Ó¼°²éÑ¯ÊÇÕı³£µÄ
-	 *  
+	 * æŸ¥æ‰¾å·²ç»è¿æ¥çš„Clientæ‰€åœ¨ä¸‹æ ‡
+	 * 
 	 * @param token
 	 * @return
 	 */
 	private int findClient(IBinder token) {
-		Log.i(TAG, "findClient()");
-
 		for (int i = 0; i < mClients.size(); i++) {
 			if (mClients.get(i).mToken == token) {
 				return i;
@@ -128,43 +126,41 @@ public class CallbackService extends Service {
 	}
 
 	/**
-	 *  ·¢³öÍ¨ÖªÊÂ¼ş
-	 *  
-	 *  ¸Ãº¯Êı»¹´æÔÚÒ»¸öĞ¡bug£¬¾ÍÊÇmCallbacks.beginBroadcast()·µ»ØµÄ×ÜÊÇ0
-	 *  µ«ÊÇmCallbacks.register()ÓÖÊÇÏÔÊ¾×¢²á³É¹¦ÁËµÄ¡£ºóĞø»¹ÊÇ¿´¿´Ô´ÂëÁË½âÏÂÏ¸½Ú
-	 *  
+	 * å‘å‡ºé€šçŸ¥äº‹ä»¶
+	 * 
+	 * è¯¥å‡½æ•°è¿˜å­˜åœ¨ä¸€ä¸ªå°bugï¼Œå°±æ˜¯mCallbacks.beginBroadcast()è¿”å›çš„æ€»æ˜¯0
+	 * ä½†æ˜¯mCallbacks.register()åˆæ˜¯æ˜¾ç¤ºæ³¨å†ŒæˆåŠŸäº†çš„ã€‚åç»­è¿˜æ˜¯çœ‹çœ‹æºç äº†è§£ä¸‹ç»†èŠ‚
+	 * 
+	 * BUGåŸå› ï¼šclientéœ€è¦å…ˆregisteræ³¨å†Œå‡½æ•°ä¹‹åæ‰å¯ä»¥è°ƒç”¨join()æ–¹æ³•
+	 * å› ä¸ºjoinæ–¹æ³•ä¸­çš„notifyParticipate()ä¼šä½¿ç”¨åˆ°mCallbacks
+     * è€ŒmCallbacksæ˜¯åœ¨registerä¸­æ·»åŠ å˜é‡unregisterä¸­ç§»é™¤å˜é‡çš„
+     * 
+	 * if the target IBinder's process has already died
+	 * 
+	 * æºç å›è°ƒæ³¨å†Œçš„çš„å®ç°ï¼šRemoteCallbackListçš„register(E callback, Object cookie)æ–¹æ³•
+	 * 
 	 * @param name
-	 * @param joinOrLeave ClientÊÇ½¨Á¢Á¬½Ó»¹ÊÇ¶Ï¿ªÁ¬½Ó
+	 * @param joinOrLeave
+	 *            Clientæ˜¯å»ºç«‹è¿æ¥è¿˜æ˜¯æ–­å¼€è¿æ¥
 	 */
 	private void notifyParticipate(String name, boolean joinOrLeave) {
-		int len = 0;
-		try {
-			len = mCallbacks.beginBroadcast();
-		} catch (Exception e) {
-			Log.i(TAG, " mCallbacks.beginBroadcast() exception");
-			e.printStackTrace();
-		}
-		if (len > 0) {
-			for (int i = 0; i < len; i++) {
-				try {
-					// Í¨Öª»Øµ÷
-					mCallbacks.getBroadcastItem(i).onJoin(name, joinOrLeave);
-					Log.i(TAG, "mCallbacks.getBroadcastItem(i).onJoin(name, joinOrLeave)");
-				} catch (RemoteException e) {
-					Log.i(TAG, "notifyParticipate() RemoteException");
-					e.printStackTrace();
-				}
+		int len = iCallbacks.beginBroadcast();
+		for (int i = 0; i < len; i++) {
+			try {
+				// é€šçŸ¥å›è°ƒ
+				iCallbacks.getBroadcastItem(i).onJoin(name, joinOrLeave);
+				Log.i(TAG, " callback client : " + name + " onJoin()");
+			} catch (RemoteException e) {
+				Log.i(TAG, "notifyParticipate() RemoteException" + joinOrLeave);
+				e.printStackTrace();
 			}
-			mCallbacks.finishBroadcast();
-			Log.i(TAG, "notifyParticipate()");
-		} else {
-			Log.i(TAG, "notifyParticipate() has not executed, mCallbacks.beginBroadcast() == 0");
 		}
+		iCallbacks.finishBroadcast();
 	}
 
 	/**
-	 *  ClientÀà£¬Ö÷ÒªÊÇÓÃÆäIBinderµÄmToken¶ÔÏóÊµÏÖÒâÍâ¶Ï¿ªÁ¬½ÓÊ±ºòµÄÍ¨Öª
-	 *
+	 * Clientç±»ï¼Œä¸»è¦æ˜¯ç”¨å…¶IBinderçš„mTokenå¯¹è±¡å®ç°æ„å¤–æ–­å¼€è¿æ¥æ—¶å€™çš„é€šçŸ¥
+	 * 
 	 */
 	private final class Client implements IBinder.DeathRecipient {
 		public final IBinder mToken;
@@ -177,7 +173,7 @@ public class CallbackService extends Service {
 
 		@Override
 		public void binderDied() {
-			// ¿Í»§¶ËÒâÍâ¶Ï¿ªÁ¬½Ó£¬Ö´ĞĞ´Ë»Øµ÷
+			// å®¢æˆ·ç«¯æ„å¤–æ–­å¼€è¿æ¥ï¼Œæ‰§è¡Œæ­¤å›è°ƒ
 			int index = mClients.indexOf(this);
 			if (index < 0) {
 				return;
@@ -185,6 +181,8 @@ public class CallbackService extends Service {
 
 			Log.i(TAG, "client died: " + mName);
 			mClients.remove(this);
+			notifyParticipate(mName, false);
 		}
 	}
+	
 }
